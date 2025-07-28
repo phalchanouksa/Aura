@@ -11,6 +11,8 @@
     <StackPanel Margin="15">
         <CheckBox Content="Enable Aura Dimmer" FontWeight="Bold" IsChecked="{Binding IsOverlayVisible, Mode=TwoWay}"/>
         <Separator Margin="0,15,0,10"/>
+        <CheckBox Content="Run Aura on Windows Startup" IsChecked="{Binding RunOnStartup, Mode=TwoWay}"/>
+        <Separator Margin="0,15,0,10"/>
 
         <TextBlock Text="Opacity" />
         <Slider Minimum="0.1" Maximum="1.0" Value="{Binding DimOpacity, Mode=TwoWay}" />

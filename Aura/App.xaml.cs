@@ -44,13 +44,13 @@ namespace Aura
 
         protected override void OnExit(ExitEventArgs e)
         {
-
             // --- Save Settings ---
             Aura.Properties.Settings.Default.IsOverlayVisible = overlayWindow.IsOverlayVisible;
             Aura.Properties.Settings.Default.DimOpacity = overlayWindow.DimOpacity;
             Aura.Properties.Settings.Default.DimColorR = overlayWindow.DimColorR;
             Aura.Properties.Settings.Default.DimColorG = overlayWindow.DimColorG;
             Aura.Properties.Settings.Default.DimColorB = overlayWindow.DimColorB;
+            Aura.Properties.Settings.Default.RunOnStartup = overlayWindow.RunOnStartup; // NEW: Save this setting
 
             Aura.Properties.Settings.Default.Save();
             tb?.Dispose(); // Clean up the icon when the app closes

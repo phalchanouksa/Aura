@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
-
+using Microsoft.Win32; // Add this namespace
 
 namespace Aura
 {
@@ -15,6 +15,7 @@ namespace Aura
         private DispatcherTimer timer;
         private IntPtr _windowHandle;
         private bool _isOverlayVisible = false;
+        private bool _runOnStartup; // New field for startup setting
 
         [DllImport("user32.dll")]
         public static extern int GetWindowLong(IntPtr hwnd, int index);
@@ -41,7 +42,23 @@ namespace Aura
             }
         }
 
-        // --- New Properties for Customization ---
+        // --- New Property for Run on Startup ---
+        public bool RunOnStartup
+        {
+            get { return _runOnStartup; }
+            set
+            {
+                if (_runOnStartup != value)
+                {
+                    _runOnStartup = value;
+                    SetStartup(_runOnStartup); // Call method to update registry
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RunOnStartup)));
+                }
+            }
+        }
+        // --- End of New Property ---
+
+        // --- Existing Properties for Customization ---
         public double DimOpacity
         {
             get { return DimBrush.Opacity; }
@@ -82,7 +99,7 @@ namespace Aura
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(null)); // Update all color properties
             }
         }
-        // --- End of New Properties ---
+        // --- End of Existing Properties ---
 
         public MainWindow()
         {
@@ -101,9 +118,12 @@ namespace Aura
                 Aura.Properties.Settings.Default.DimColorG,
                 Aura.Properties.Settings.Default.DimColorB
             );
+            // Load RunOnStartup setting
+            _runOnStartup = Aura.Properties.Settings.Default.RunOnStartup; // Load into private field first
+
             IsOverlayVisible = Aura.Properties.Settings.Default.IsOverlayVisible;
             // Must be set last to show the window if it was enabled
-            IsOverlayVisible = Properties.Settings.Default.IsOverlayVisible;
+            // Redundant: IsOverlayVisible = Properties.Settings.Default.IsOverlayVisible; // This line can be removed
 
             this.Left = SystemParameters.VirtualScreenLeft;
             this.Top = SystemParameters.VirtualScreenTop;
@@ -123,6 +143,41 @@ namespace Aura
             var extendedStyle = GetWindowLong(_windowHandle, GWL_EXSTYLE);
             SetWindowLong(_windowHandle, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT);
         }
+
+        // --- New method to manage startup via Registry ---
+        private void SetStartup(bool enable)
+        {
+            // The key for Run programs at startup for the current user
+            const string RunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+            RegistryKey startupKey = Registry.CurrentUser.OpenSubKey(RunKey, true);
+
+            if (startupKey == null)
+            {
+                // This should generally not happen, but handle it if the key isn't accessible
+                MessageBox.Show("Could not open Windows startup registry key.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string appName = "Aura"; // Your application's name
+            string appPath = Process.GetCurrentProcess().MainModule.FileName; // Path to your executable
+
+            if (enable)
+            {
+                // Add the application to startup
+                startupKey.SetValue(appName, appPath);
+            }
+            else
+            {
+                // Remove the application from startup
+                if (startupKey.GetValue(appName) != null)
+                {
+                    startupKey.DeleteValue(appName);
+                }
+            }
+
+            startupKey.Close();
+        }
+        // --- End of new method ---
 
         private void Timer_Tick(object sender, EventArgs e)
         {
